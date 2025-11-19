@@ -1,12 +1,24 @@
 #include "parser.h"
 #include <stdio.h>
+typedef struct {
+    char route_name[16];   
+    long departure_epoch;  
+    int departure_minutes; 
+} BusDeparture;
 
-void parse_json(const char *json) {
+typedef struct {
+    BusDeparture *items;
+    int count;
+} DepartureList;
+
+DepartureList *parse_json(const char *json, char *stop) {
     if (!json) {
         printf("No JSON to parse\n");
         return;
     }
 
-    // TODO: Implement real parsing later
-    printf("Received JSON (%zu bytes)\n", strlen(json));
+    // TODO: implement parsing logic
+
+    //return bus name, time until departure
+    return NULL;
 }

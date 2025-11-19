@@ -1,15 +1,14 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2
-LDFLAGS = -lcurl
+CFLAGS = -Wall -Wextra -I./src
 
-SRC = main.c networking.c parser.c render.c
+SRC = src/main.c src/networking.c src/parser.c src/render.c
 OBJ = $(SRC:.c=.o)
-TARGET = bus_board
+TARGET = bus_ticker
 
-all: $(TARGET)
+LIBS = -lcurl
 
 $(TARGET): $(OBJ)
-	$(CC) $(OBJ) -o $@ $(LDFLAGS)
+	$(CC) $(OBJ) -o $(TARGET) $(LIBS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

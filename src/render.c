@@ -4,5 +4,6 @@
 void render_display() {
     printf("Rendering display...\n");
 
-    // TODO: draw bus times on your LED matrix
+    // TODO: draw bus times on the LED matrix
+    //depending on bus, color changes. 
 }
