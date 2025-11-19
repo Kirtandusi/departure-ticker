@@ -3,7 +3,7 @@
 #define PARSER_H
 
 typedef struct {
-    char route_name[2];
+    char route_name[8]; 
     int departure_minutes;
 } BusDeparture;
 
@@ -12,7 +12,7 @@ typedef struct {
     int count;
 } DepartureList;
 
-DepartureList *parse_json(char *json, char *stop);
+DepartureList *parse_pb_to_list(char *pb, char *stop);
 void free_departure_list(DepartureList *list);
 
 #endif

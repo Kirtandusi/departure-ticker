@@ -1,25 +1,36 @@
 #include "parser.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
-DepartureList *parse_json(char *json, char *stop) {
-    if (!json) {
-        printf("No JSON to parse\n");
-        return NULL;
-    }
+DepartureList *parse_json_to_list(char *json, char *stop) {
+    
     DepartureList *list = malloc(sizeof(DepartureList));
-    if (!list) {
-        printf("Memory allocation failed\n");
+    if (!list) return NULL;
+
+    list->count = 0;
+    list->items = malloc(sizeof(BusDeparture) * 1); // placeholder
+    if (!list->items) {
+        free(list);
         return NULL;
     }
-    //stubbing
-    list->items = NULL;
-    list->count = 0;
-    //return bus name, time until departure
-    for (int i = 0; json[i] != '\0'; i++) {
-        
-    }
+
     return list;
 }
+
+DepartureList *parse_pb_to_list(char *pb, char *stop) {
+    if (!pb) {
+        printf("No .pb to parse\n");
+        return NULL;
+    }
+    char *json = NULL;
+
+
+    return parse_json_to_list(json, stop);
+    }
+    
+
 void free_departure_list(DepartureList *list) {
     if (list) {
         free(list->items);

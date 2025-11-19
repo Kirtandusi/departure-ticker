@@ -8,16 +8,16 @@
 int main() {
     printf("Fetching bus data...\n");
     while (1) {
-        char *json = get_data();
-        if (json) {
-            DepartureList *list = parse_json(json, "N Broom at W Dayton");
+        char *pb = get_data();
+        if (pb) {
+            DepartureList *list = parse_pb_to_list(pb, "133"); //N Broom at W Dayton ID
             render_display(list);
-            free(json);
+            free(pb);
             free_departure_list(list);
         } else {
             fprintf(stderr, "Failed to get data\n");
         }
-        sleep(1); // Wait for 60 seconds before fetching data again
+        sleep(15); // max cap of 10,000 requests per day. This reduces requests to 5760 per day.
     }
     return 0;
 }

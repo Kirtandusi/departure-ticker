@@ -2,53 +2,57 @@
 #include <curl/curl.h>
 #include <stdlib.h>
 #include <string.h>
-#include "parser.h"
 
-static char *global_json = NULL;
-static size_t global_size = 0;
+typedef struct {
+    char *data;
+    size_t size;
+} ResponseBuffer;
 
-
-size_t callback(char *buffer, size_t itemsize, size_t nitems, void *other) {
+size_t callback(char *buffer, size_t itemsize, size_t nitems, void *userdata) {
     size_t bytes = itemsize * nitems;
-    //collect data
-    global_json = realloc(global_json, global_size + bytes + 1);
-    if (!global_json) {
+    ResponseBuffer *resp = (ResponseBuffer *)userdata;
+    
+    char *temp = realloc(resp->data, resp->size + bytes + 1);
+    if (!temp) {
         fprintf(stderr, "Realloc failed\n");
         return 0;
     }
-    memcpy(global_json + global_size, buffer, bytes);
-    global_size += bytes;
-    global_json[global_size] = '\0';
-    printf("Received %zu bytes\n", bytes);
+    
+    resp->data = temp;
+    memcpy(resp->data + resp->size, buffer, bytes);
+    resp->size += bytes;
+    resp->data[resp->size] = '\0';
+    
     return bytes;
-    }
+}
+
 char *get_data() {
     CURL *curl = curl_easy_init();
-
-    if(!curl) {
+    if (!curl) {
         fprintf(stderr, "Init failed\n");
         return NULL;
     }
-
-    free(global_json);
-    global_json = NULL;
-    global_size = 0;
-
-    char *api_key = getenv("API");
-    if (!api_key) {
-        fprintf(stderr, "API key not set\n");
-        return NULL;
-    }
-    curl_easy_setopt(curl, CURLOPT_URL, api_key);
+    
+    ResponseBuffer response = {NULL, 0};
+    
+    curl_easy_setopt(curl, CURLOPT_URL,
+                     "https://metromap.cityofmadison.com/gtfsrt/trips");
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    
+    // disable SSL verification 
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    
     CURLcode res = curl_easy_perform(curl);
+    curl_easy_cleanup(curl);
+    
     if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-        curl_easy_strerror(res);
+        fprintf(stderr, "curl_easy_perform() failed: %s\n", 
+                curl_easy_strerror(res));
+        free(response.data);
         return NULL;
     }
     
-
-    curl_easy_cleanup(curl);
-    return global_json;
+    return response.data;
 }
