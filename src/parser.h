@@ -4,7 +4,6 @@
 
 typedef struct {
     char route_name[2];
-    long departure_epoch;
     int departure_minutes;
 } BusDeparture;
 

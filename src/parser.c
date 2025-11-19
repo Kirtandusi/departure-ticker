@@ -6,11 +6,19 @@ DepartureList *parse_json(char *json, char *stop) {
         printf("No JSON to parse\n");
         return NULL;
     }
-    
-    // TODO: implement parsing logic
-
+    DepartureList *list = malloc(sizeof(DepartureList));
+    if (!list) {
+        printf("Memory allocation failed\n");
+        return NULL;
+    }
+    //stubbing
+    list->items = NULL;
+    list->count = 0;
     //return bus name, time until departure
-    return NULL;
+    for (int i = 0; json[i] != '\0'; i++) {
+        
+    }
+    return list;
 }
 void free_departure_list(DepartureList *list) {
     if (list) {
