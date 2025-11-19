@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "parser.h"
-//https://maps.cityofmadison.com/arcgis/rest/services/Public/OPEN_DATA_TRANS/MapServer/18/query?where=1%3D1&outFields=*&outSR=4326&f=json
 
 char *get_data() {
     CURL *curl = curl_easy_init();

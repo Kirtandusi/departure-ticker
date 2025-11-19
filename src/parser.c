@@ -1,17 +1,7 @@
 #include "parser.h"
 #include <stdio.h>
-typedef struct {
-    char route_name[16];   
-    long departure_epoch;  
-    int departure_minutes; 
-} BusDeparture;
 
-typedef struct {
-    BusDeparture *items;
-    int count;
-} DepartureList;
-
-DepartureList *parse_json(const char *json, char *stop) {
+DepartureList *parse_json(char *json, char *stop) {
     if (!json) {
         printf("No JSON to parse\n");
         return;
@@ -21,4 +11,10 @@ DepartureList *parse_json(const char *json, char *stop) {
 
     //return bus name, time until departure
     return NULL;
+}
+void free_departure_list(DepartureList *list) {
+    if (list) {
+        free(list->items);
+        free(list);
+    }
 }
