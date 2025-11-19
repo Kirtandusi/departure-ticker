@@ -4,9 +4,9 @@
 DepartureList *parse_json(char *json, char *stop) {
     if (!json) {
         printf("No JSON to parse\n");
-        return;
+        return NULL;
     }
-
+    
     // TODO: implement parsing logic
 
     //return bus name, time until departure

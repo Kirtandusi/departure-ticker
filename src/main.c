@@ -5,9 +5,6 @@
 #include "render.h"
 #include <unistd.h>
 #include <time.h>
-#ifndef PARSER_H
-#endif
-#include "parser.h"
 int main() {
     printf("Fetching bus data...\n");
     while (1) {
@@ -21,6 +18,6 @@ int main() {
             fprintf(stderr, "Failed to get data\n");
         }
         sleep(1); // Wait for 60 seconds before fetching data again
-        return 0;
     }
+    return 0;
 }
