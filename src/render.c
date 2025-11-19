@@ -1,5 +1,5 @@
-#include "render.h"
-#include "parser.h"
+#include "../include/render.h"
+#include "../include/parser.h"
 #include <stdio.h>
 
 void render_display(DepartureList *list) {

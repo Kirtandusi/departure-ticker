@@ -1,4 +1,4 @@
-#include "networking.h"
+#include "../include/networking.h"
 #include <curl/curl.h>
 #include <stdlib.h>
 #include <string.h>
