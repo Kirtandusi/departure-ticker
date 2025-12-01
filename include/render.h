@@ -1,6 +1,6 @@
 #ifndef RENDER_H
 #define RENDER_H
 
-void render_display();
+void render_display(DepartureList *list);
 
 #endif

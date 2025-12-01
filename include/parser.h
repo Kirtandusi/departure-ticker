@@ -3,7 +3,7 @@
 #define PARSER_H
 
 typedef struct {
-    char route_name[8]; 
+    char route_name[32];
     int departure_minutes;
 } BusDeparture;
 

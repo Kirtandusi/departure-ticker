@@ -1,15 +1,28 @@
+# Detect platform
+UNAME_S := $(shell uname -s)
+
 # Compiler
 CC = gcc
 
-# Paths
-INCLUDE_DIRS = -Iinclude -Iinclude/proto -I/opt/homebrew/include
-LIB_DIRS = -L/opt/homebrew/lib
+# Base include paths
+INCLUDE_DIRS = -Iinclude -Iinclude/proto
 
-# Libraries
+# Base library dirs + libs
+LIB_DIRS =
 LIBS = -lprotobuf-c -lcurl
 
-# Compiler flags
-CFLAGS = -Wall -Wextra $(INCLUDE_DIRS)
+# Platform-specific settings
+ifeq ($(UNAME_S), Darwin)     # macOS
+    INCLUDE_DIRS += -I/opt/homebrew/include
+    LIB_DIRS += -L/opt/homebrew/lib
+endif
+
+ifeq ($(UNAME_S), Linux)      # Raspberry Pi
+    # Linux typically needs no extra paths
+endif
+
+# Flags
+CFLAGS = -Wall -Wextra -O2 $(INCLUDE_DIRS)
 LDFLAGS = $(LIB_DIRS) $(LIBS)
 
 # Source files
@@ -31,7 +44,6 @@ all: $(TARGET)
 $(TARGET): $(OBJ)
 	$(CC) $(OBJ) -o $(TARGET) $(LDFLAGS)
 
-# Compile rules
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
