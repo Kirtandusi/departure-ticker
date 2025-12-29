@@ -7,7 +7,7 @@
 #include <time.h>
 
 DepartureList *parse_pb_to_list(char *pb, size_t pb_size,
-                                char **stop_ids, char **route_letters, size_t n_stops) {
+                                char *stop_ids[], char *route_letters[], size_t n_stops) {
     if (!pb || pb_size == 0 || !stop_ids || !route_letters || n_stops == 0) {
         fprintf(stderr, "parse_pb_to_list: invalid arguments\n");
         return NULL;
@@ -35,7 +35,7 @@ DepartureList *parse_pb_to_list(char *pb, size_t pb_size,
 
     list->count = n_stops;
 
-    // initialize all stops with empty route and zero arrival
+    // initialize
     for (size_t i = 0; i < n_stops; i++) {
         strncpy(list->items[i].route_name, route_letters[i], sizeof(list->items[i].route_name)-1);
         list->items[i].route_name[sizeof(list->items[i].route_name)-1] = '\0';
@@ -55,25 +55,21 @@ DepartureList *parse_pb_to_list(char *pb, size_t pb_size,
             TransitRealtime__TripUpdate__StopTimeUpdate *stu = tu->stop_time_update[j];
             if (!stu->stop_id) continue;
 
-            // check if stop_id is in our list
             for (size_t k = 0; k < n_stops; k++) {
                 if (strcmp(stu->stop_id, stop_ids[k]) != 0) continue;
 
-                int64_t arrival_time = 0;
-                if (stu->arrival && stu->arrival->time)
-                    arrival_time = stu->arrival->time;
-                else if (stu->departure && stu->departure->time)
-                    arrival_time = stu->departure->time;
+                int64_t ts = 0;
+                if (stu->departure && stu->departure->time)
+                    ts = stu->departure->time;   // use departure from stop
+                else if (stu->arrival && stu->arrival->time)
+                    ts = stu->arrival->time;      // fallback
                 else
                     continue;
 
-                // ignore past departures
-                if (arrival_time < now - 60) continue;
+                if (ts < now - 60) continue; // ignore past departures
 
-                // only keep the **latest upcoming departure**
-                if (arrival_time > list->items[k].arrival_unix_time) {
-                    list->items[k].arrival_unix_time = arrival_time;
-                }
+                if (ts > list->items[k].arrival_unix_time)
+                    list->items[k].arrival_unix_time = ts;  // latest upcoming departure
             }
         }
     }

@@ -8,12 +8,12 @@
 #include "../include/render.h"
 
 int main() {
-    printf("Fetching bus data...\n");
+    // Define your stops and their letters
+    char *stop_ids[] = {"0887", "0133", "0857", "0533"};
+    char *route_letters[] = {"A", "C", "D", "E"};
+    size_t n_stops = 4;
 
-    // Stops and corresponding route letters
-    char *stop_ids[] = {"133", "857", "533", "887"};
-    char *route_letters[] = {"C", "D", "E", "A"};
-    size_t n_stops = sizeof(stop_ids) / sizeof(stop_ids[0]);
+    printf("Fetching bus data...\n");
 
     while (1) {
         size_t pb_size = 0;
@@ -25,7 +25,6 @@ int main() {
             continue;
         }
 
-        // Parse feed for these stops
         DepartureList *list = parse_pb_to_list(pb, pb_size, stop_ids, route_letters, n_stops);
         free(pb);
 
@@ -35,7 +34,6 @@ int main() {
             continue;
         }
 
-        // Render the departures
         render_display(list);
         printf("Parsed %zu departures\n\n", list->count);
 
