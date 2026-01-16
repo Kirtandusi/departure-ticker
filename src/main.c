@@ -9,7 +9,7 @@
 
 int main() {
     // Define your stops and their letters
-    char *stop_ids[] = {"0887", "0133", "0857", "0533"};
+    char *stop_ids[] = {"887", "133", "857", "533"};
     char *route_letters[] = {"A", "C", "D", "E"};
     size_t n_stops = 4;
 

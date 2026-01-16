@@ -55,8 +55,17 @@ DepartureList *parse_pb_to_list(char *pb, size_t pb_size,
             TransitRealtime__TripUpdate__StopTimeUpdate *stu = tu->stop_time_update[j];
             if (!stu->stop_id) continue;
 
+
+        //     printf("DEBUG: route_id=%s, stop_id=%s\n", 
+        //    tu->trip->route_id, stu->stop_id); 
+
+
             for (size_t k = 0; k < n_stops; k++) {
                 if (strcmp(stu->stop_id, stop_ids[k]) != 0) continue;
+
+
+                // printf("DEBUG: Matched stop %s\n", stop_ids[k]);
+
 
                 int64_t ts = 0;
                 if (stu->departure && stu->departure->time)
@@ -66,10 +75,39 @@ DepartureList *parse_pb_to_list(char *pb, size_t pb_size,
                 else
                     continue;
 
+
+                // if (stu->departure && stu->departure->has_delay) {
+                //     printf("DEBUG: Route %s has delay=%d seconds\n", 
+                //         tu->trip->route_id, stu->departure->delay);
+                //     ts += stu->departure->delay;  // Apply the delay!
+                // } else if (stu->arrival && stu->arrival->has_delay) {
+                //     printf("DEBUG: Route %s has delay=%d seconds\n",
+                //         tu->trip->route_id, stu->arrival->delay);
+                //     ts += stu->arrival->delay;  // Apply the delay!
+                // }
+
+                //                 if (stu->departure) {
+                //     printf("DEBUG departure: has_time=%d, has_delay=%d", 
+                //         stu->departure->has_time, stu->departure->has_delay);
+                //     if (stu->departure->has_delay)
+                //         printf(", delay=%d", stu->departure->delay);
+                //     printf("\n");
+                // }
+                // if (stu->arrival) {
+                //     printf("DEBUG arrival: has_time=%d, has_delay=%d", 
+                //         stu->arrival->has_time, stu->arrival->has_delay);
+                //     if (stu->arrival->has_delay)
+                //         printf(", delay=%d", stu->arrival->delay);
+                //     printf("\n");
+                // }
+
                 if (ts < now - 60) continue; // ignore past departures
 
-                if (ts > list->items[k].arrival_unix_time)
+                if (list->items[k].arrival_unix_time == 0 || ts < list->items[k].arrival_unix_time)
                     list->items[k].arrival_unix_time = ts;  // latest upcoming departure
+
+            //     printf("DEBUG: Route %s, stop %s, ts=%lld, now=%ld, diff_min=%lld\n",
+            //         route_letters[k], stop_ids[k], (long long)ts, now, (long long)((ts - now) / 60));
             }
         }
     }
