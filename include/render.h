@@ -4,5 +4,5 @@
 #include "../include/parser.h"
 
 void render_display(DepartureList *list);
-
+void print_output(DepartureList *list);
 #endif

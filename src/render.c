@@ -3,7 +3,10 @@
 #include <time.h>
 #include <stdlib.h>
 
-void render_display(DepartureList *list) {
+/**
+ * Console printing
+ */
+void print_output(DepartureList *list) {
     if (!list || list->count == 0) {
         printf("No upcoming departures.\n");
         return;
@@ -38,4 +41,12 @@ void render_display(DepartureList *list) {
                    tm.tm_hour, tm.tm_min);
         }
     }
+}
+/**
+ * RGB Matrix display rendering. Should look identical to print_output, but have color. 
+ */
+void render_display(DepartureList *list) {
+    // Placeholder for future display rendering logic
+    if (!list) return;
+
 }

@@ -63,7 +63,7 @@ int main() {
             sleep(15);
             continue;
         }
-
+        print_output(list);
         render_display(list);
         free_departure_list(list);
         free(json);
