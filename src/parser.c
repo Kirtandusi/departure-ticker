@@ -1,29 +1,47 @@
+#define _XOPEN_SOURCE 700 // posix extension for strptime
 #include "../include/parser.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <cjson/cJSON.h>
-#define _XOPEN_SOURCE
 #include <time.h>
 
 
 DepartureList *parse_json_predictions(char *json,
                                       char *stop_ids[],
-                                      size_t n_stops) {
+                                      int n_stops) {
     cJSON *root = cJSON_Parse(json);
+    // fprintf(stderr, "JSON parse failed:\n%s\n", json);
     if (!root) return NULL;
 
     cJSON *resp = cJSON_GetObjectItem(root, "bustime-response");
     if (!cJSON_IsObject(resp)) {
+        DepartureList *list = calloc(1, sizeof(*list));
+        list->items = calloc(n_stops, sizeof(BusDeparture));
+        list->count = n_stops;
+
+        for (int i = 0; i < n_stops; i++) {
+            strncpy(list->items[i].stop_id, stop_ids[i], 7);
+            list->items[i].stop_id[7] = '\0';
+        }
+
         cJSON_Delete(root);
-        return NULL;
+        return list;
     }
 
     cJSON *prd = cJSON_GetObjectItem(resp, "prd");
     if (!cJSON_IsArray(prd)) {
+        DepartureList *list = calloc(1, sizeof(*list));
+        list->items = calloc(n_stops, sizeof(BusDeparture));
+        list->count = n_stops;
+
+        for (int i = 0; i < n_stops; i++) {
+            strncpy(list->items[i].stop_id, stop_ids[i], 7);
+            list->items[i].stop_id[7] = '\0';
+        }
+
         cJSON_Delete(root);
-        return NULL;
+        return list;
     }
 
 
@@ -42,7 +60,7 @@ DepartureList *parse_json_predictions(char *json,
 
     list->count = n_stops;
 
-    for (size_t i = 0; i < n_stops; i++) {
+    for (int i = 0; i < n_stops; i++) {
         strncpy(list->items[i].stop_id, stop_ids[i], 7);
         list->items[i].stop_id[7] = '\0';
         list->items[i].arrival_unix_time = 0;
@@ -50,9 +68,9 @@ DepartureList *parse_json_predictions(char *json,
 
    cJSON *item;
 cJSON_ArrayForEach(item, prd) {
-    cJSON *stpid_j = cJSON_GetObjectItem(item, "stpid");
-    cJSON *rt_j    = cJSON_GetObjectItem(item, "rt");
-    cJSON *prdtm_j = cJSON_GetObjectItem(item, "prdtm");
+    cJSON *stpid_j = cJSON_GetObjectItem(item, "stpid"); //stop id
+    cJSON *rt_j    = cJSON_GetObjectItem(item, "rt"); //actual identifier
+    cJSON *prdtm_j = cJSON_GetObjectItem(item, "prdtm"); //time
 
     if (!cJSON_IsString(stpid_j) ||
         !cJSON_IsString(rt_j) ||
@@ -69,7 +87,7 @@ cJSON_ArrayForEach(item, prd) {
 
     time_t ts = mktime(&tm);
 
-    for (size_t k = 0; k < n_stops; k++) {
+    for (int k = 0; k < n_stops; k++) {
         if (strcmp(stpid, list->items[k].stop_id) != 0)
             continue;
 
@@ -81,7 +99,6 @@ cJSON_ArrayForEach(item, prd) {
             list->items[k].arrival_unix_time = ts;
         }
     }
-
 
     cJSON_Delete(root);
     return list;

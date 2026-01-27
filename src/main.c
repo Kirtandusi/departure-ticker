@@ -37,8 +37,9 @@ int main() {
         fprintf(stderr, "API_KEY not set in environment\n");
         return 1;
     }
-    char *stop_ids[] = {"0887", "0133", "0857", "0533"};
-    size_t n_stops = 4;
+    char *stop_ids[] = {"0887", "0133", "0857", "10062"};
+    //10062
+    int n_stops = 4;
 
     printf("Fetching bus data...\n");
 
@@ -55,9 +56,7 @@ int main() {
             continue;
         }
 
-        DepartureList *list =
-            parse_json_predictions(json, stop_ids, n_stops);
-        free(json);
+        DepartureList *list = parse_json_predictions(json, stop_ids, n_stops);
 
         if (!list) {
             fprintf(stderr, "Failed to parse data\n");
@@ -67,7 +66,7 @@ int main() {
 
         render_display(list);
         free_departure_list(list);
-
+        free(json);
         sleep(15);
     }
 }

@@ -17,7 +17,7 @@ typedef struct {
 
 DepartureList *parse_json_predictions(char *json,
                                       char *stop_ids[],
-                                      size_t n_stops);
+                                      int n_stops);
 
 void free_departure_list(DepartureList *list);
 

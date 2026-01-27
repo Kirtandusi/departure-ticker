@@ -35,8 +35,11 @@ char *get_data(const char *url, size_t *out_size) {
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0");
+
     // curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     // curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    //fprintf(stderr, "REQUEST URL:\n%s\n", url);
 
     CURLcode res = curl_easy_perform(curl);
     curl_easy_cleanup(curl);
