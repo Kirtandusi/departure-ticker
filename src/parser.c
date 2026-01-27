@@ -1,120 +1,93 @@
 #include "../include/parser.h"
-#include "../include/proto/gtfs-realtime.pb-c.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <cjson/cJSON.h>
+#define _XOPEN_SOURCE
 #include <time.h>
 
-DepartureList *parse_pb_to_list(char *pb, size_t pb_size,
-                                char *stop_ids[], char *route_letters[], size_t n_stops) {
-    if (!pb || pb_size == 0 || !stop_ids || !route_letters || n_stops == 0) {
-        fprintf(stderr, "parse_pb_to_list: invalid arguments\n");
+
+DepartureList *parse_json_predictions(char *json,
+                                      char *stop_ids[],
+                                      size_t n_stops) {
+    cJSON *root = cJSON_Parse(json);
+    if (!root) return NULL;
+
+    cJSON *resp = cJSON_GetObjectItem(root, "bustime-response");
+    if (!cJSON_IsObject(resp)) {
+        cJSON_Delete(root);
         return NULL;
     }
 
-    TransitRealtime__FeedMessage *feed =
-        transit_realtime__feed_message__unpack(NULL, pb_size, (uint8_t *)pb);
-    if (!feed) {
-        fprintf(stderr, "Failed to unpack protobuf\n");
+    cJSON *prd = cJSON_GetObjectItem(resp, "prd");
+    if (!cJSON_IsArray(prd)) {
+        cJSON_Delete(root);
         return NULL;
     }
 
-    DepartureList *list = malloc(sizeof(DepartureList));
+
+    DepartureList *list = malloc(sizeof(*list));
     if (!list) {
-        transit_realtime__feed_message__free_unpacked(feed, NULL);
+        cJSON_Delete(root);
         return NULL;
     }
 
-    list->items = malloc(sizeof(BusDeparture) * n_stops);
+    list->items = calloc(n_stops, sizeof(BusDeparture));
     if (!list->items) {
         free(list);
-        transit_realtime__feed_message__free_unpacked(feed, NULL);
+        cJSON_Delete(root);
         return NULL;
     }
 
     list->count = n_stops;
 
-    // initialize
     for (size_t i = 0; i < n_stops; i++) {
-        strncpy(list->items[i].route_name, route_letters[i], sizeof(list->items[i].route_name)-1);
-        list->items[i].route_name[sizeof(list->items[i].route_name)-1] = '\0';
+        strncpy(list->items[i].stop_id, stop_ids[i], 7);
+        list->items[i].stop_id[7] = '\0';
         list->items[i].arrival_unix_time = 0;
     }
 
-    time_t now = time(NULL);
+   cJSON *item;
+cJSON_ArrayForEach(item, prd) {
+    cJSON *stpid_j = cJSON_GetObjectItem(item, "stpid");
+    cJSON *rt_j    = cJSON_GetObjectItem(item, "rt");
+    cJSON *prdtm_j = cJSON_GetObjectItem(item, "prdtm");
 
-    for (size_t i = 0; i < feed->n_entity; i++) {
-        TransitRealtime__FeedEntity *entity = feed->entity[i];
-        if (!entity->trip_update) continue;
+    if (!cJSON_IsString(stpid_j) ||
+        !cJSON_IsString(rt_j) ||
+        !cJSON_IsString(prdtm_j))
+        continue;
 
-        TransitRealtime__TripUpdate *tu = entity->trip_update;
-        if (!tu->trip || !tu->trip->route_id) continue;
+    char *stpid = stpid_j->valuestring;
+    char *rt    = rt_j->valuestring;
+    char *prdtm = prdtm_j->valuestring;
 
-        for (size_t j = 0; j < tu->n_stop_time_update; j++) {
-            TransitRealtime__TripUpdate__StopTimeUpdate *stu = tu->stop_time_update[j];
-            if (!stu->stop_id) continue;
+    struct tm tm = {0};
+    if (!strptime(prdtm, "%Y%m%d %H:%M", &tm))
+        continue;
 
+    time_t ts = mktime(&tm);
 
-        //     printf("DEBUG: route_id=%s, stop_id=%s\n", 
-        //    tu->trip->route_id, stu->stop_id); 
+    for (size_t k = 0; k < n_stops; k++) {
+        if (strcmp(stpid, list->items[k].stop_id) != 0)
+            continue;
 
+        strncpy(list->items[k].route_name, rt, 7);
+        list->items[k].route_name[7] = '\0';
 
-            for (size_t k = 0; k < n_stops; k++) {
-                if (strcmp(stu->stop_id, stop_ids[k]) != 0) continue;
-
-
-                // printf("DEBUG: Matched stop %s\n", stop_ids[k]);
-
-
-                int64_t ts = 0;
-                if (stu->departure && stu->departure->time)
-                    ts = stu->departure->time;   // use departure from stop
-                else if (stu->arrival && stu->arrival->time)
-                    ts = stu->arrival->time;      // fallback
-                else
-                    continue;
-
-
-                // if (stu->departure && stu->departure->has_delay) {
-                //     printf("DEBUG: Route %s has delay=%d seconds\n", 
-                //         tu->trip->route_id, stu->departure->delay);
-                //     ts += stu->departure->delay;  // Apply the delay!
-                // } else if (stu->arrival && stu->arrival->has_delay) {
-                //     printf("DEBUG: Route %s has delay=%d seconds\n",
-                //         tu->trip->route_id, stu->arrival->delay);
-                //     ts += stu->arrival->delay;  // Apply the delay!
-                // }
-
-                //                 if (stu->departure) {
-                //     printf("DEBUG departure: has_time=%d, has_delay=%d", 
-                //         stu->departure->has_time, stu->departure->has_delay);
-                //     if (stu->departure->has_delay)
-                //         printf(", delay=%d", stu->departure->delay);
-                //     printf("\n");
-                // }
-                // if (stu->arrival) {
-                //     printf("DEBUG arrival: has_time=%d, has_delay=%d", 
-                //         stu->arrival->has_time, stu->arrival->has_delay);
-                //     if (stu->arrival->has_delay)
-                //         printf(", delay=%d", stu->arrival->delay);
-                //     printf("\n");
-                // }
-
-                if (ts < now - 60) continue; // ignore past departures
-
-                if (list->items[k].arrival_unix_time == 0 || ts < list->items[k].arrival_unix_time)
-                    list->items[k].arrival_unix_time = ts;  // latest upcoming departure
-
-            //     printf("DEBUG: Route %s, stop %s, ts=%lld, now=%ld, diff_min=%lld\n",
-            //         route_letters[k], stop_ids[k], (long long)ts, now, (long long)((ts - now) / 60));
-            }
+        if (list->items[k].arrival_unix_time == 0 ||
+            ts < list->items[k].arrival_unix_time)
+            list->items[k].arrival_unix_time = ts;
         }
     }
 
-    transit_realtime__feed_message__free_unpacked(feed, NULL);
+
+    cJSON_Delete(root);
     return list;
 }
+
+
 
 void free_departure_list(DepartureList *list) {
     if (!list) return;

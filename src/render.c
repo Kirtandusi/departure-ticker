@@ -3,35 +3,39 @@
 #include <time.h>
 #include <stdlib.h>
 
-static void print_time_central(time_t t) {
-    setenv("TZ", "America/Chicago", 1);
-    tzset();
-
-    struct tm tm;
-    localtime_r(&t, &tm);
-    printf("%02d:%02d", tm.tm_hour, tm.tm_min);
-}
-
 void render_display(DepartureList *list) {
     if (!list || list->count == 0) {
         printf("No upcoming departures.\n");
         return;
     }
 
+    // Set timezone once
+    setenv("TZ", "America/Chicago", 1);
+    tzset();
+
     time_t now = time(NULL);
 
     printf("EASTBOUND\n");
 
     for (size_t i = 0; i < list->count; i++) {
-        time_t arrival = list->items[i].arrival_unix_time;
-        long mins = (arrival - now) / 60;
+        BusDeparture *d = &list->items[i];
+        time_t arrival = d->arrival_unix_time;
+
+        if (arrival == 0) {
+            printf("%-5s ...\n", d->route_name);
+            continue;
+        }
+
+        long mins = (arrival - now + 59) / 60; // round up
 
         if (mins < 0 || mins > 12 * 60) {
-            printf("%-5s ...\n", list->items[i].route_name);
+            printf("%-5s ...\n", d->route_name);
         } else {
-            printf("%-5s %2ld min (", list->items[i].route_name, mins);
-            print_time_central(arrival);
-            printf(")\n");
+            struct tm tm;
+            localtime_r(&arrival, &tm);
+            printf("%-5s %2ld min (%02d:%02d)\n",
+                   d->route_name, mins,
+                   tm.tm_hour, tm.tm_min);
         }
     }
 }

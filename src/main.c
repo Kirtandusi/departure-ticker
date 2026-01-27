@@ -2,31 +2,62 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
-
+#include <string.h>
 #include "../include/networking.h"
 #include "../include/parser.h"
 #include "../include/render.h"
 
+void load_dotenv(const char *path) {
+    FILE *f = fopen(path, "r");
+    if (!f) return;
+
+    char line[512];
+    while (fgets(line, sizeof(line), f)) {
+        if (line[0] == '#' || strlen(line) < 3) continue;
+
+        char *eq = strchr(line, '=');
+        if (!eq) continue;
+
+        *eq = 0;
+        char *key = line;
+        char *val = eq + 1;
+
+        // remove newline
+        char *nl = strchr(val, '\n');
+        if (nl) *nl = 0;
+
+        setenv(key, val, 1);
+    }
+    fclose(f);
+}
 int main() {
-    // Define your stops and their letters
-    char *stop_ids[] = {"887", "133", "857", "533"};
-    char *route_letters[] = {"A", "C", "D", "E"};
+    load_dotenv("src/.env");
+    const char* API_KEY = getenv("API_KEY");
+    if (!API_KEY) {
+        fprintf(stderr, "API_KEY not set in environment\n");
+        return 1;
+    }
+    char *stop_ids[] = {"0887", "0133", "0857", "0533"};
     size_t n_stops = 4;
 
     printf("Fetching bus data...\n");
 
     while (1) {
-        size_t pb_size = 0;
-        char *pb = get_data(&pb_size);
+        char *url = build_url(API_KEY, stop_ids, n_stops);
 
-        if (!pb || pb_size == 0) {
+        size_t json_size = 0;
+        char *json = get_data(url, &json_size);
+        free(url);
+
+        if (!json || json_size == 0) {
             fprintf(stderr, "Failed to get data\n");
             sleep(15);
             continue;
         }
 
-        DepartureList *list = parse_pb_to_list(pb, pb_size, stop_ids, route_letters, n_stops);
-        free(pb);
+        DepartureList *list =
+            parse_json_predictions(json, stop_ids, n_stops);
+        free(json);
 
         if (!list) {
             fprintf(stderr, "Failed to parse data\n");
@@ -35,12 +66,8 @@ int main() {
         }
 
         render_display(list);
-        printf("Parsed %zu departures\n\n", list->count);
-
         free_departure_list(list);
 
-        sleep(15); // ~5760 requests/day
+        sleep(15);
     }
-
-    return 0;
 }
