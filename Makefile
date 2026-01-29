@@ -1,5 +1,6 @@
 # Detect platform
 UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
 
 # Compiler
 CC = gcc
@@ -12,14 +13,18 @@ LIB_DIRS =
 LIBS = -lprotobuf-c -lcurl -lcjson
 
 # Platform-specific settings
-ifeq ($(UNAME_S), Darwin)     # macOS
+ifeq ($(UNAME_S),Darwin)     # macOS
     INCLUDE_DIRS += -I/opt/homebrew/include
     LIB_DIRS += -L/opt/homebrew/lib
 endif
 
-ifeq ($(UNAME_S), Linux)      # Linux (e.g., Raspberry Pi)
-    # Ensure you have installed required dev packages:
-    # sudo apt install libcjson-dev libcurl4-openssl-dev libprotobuf-c-dev
+ifeq ($(UNAME_S),Linux)      # Linux (e.g., Raspberry Pi)
+    ifeq ($(UNAME_M),aarch64)  # Raspberry Pi 5 (64-bit)
+        # Optional: if libraries are installed in custom locations, set here
+        # INCLUDE_DIRS += -I/opt/vc/include
+        # LIB_DIRS += -L/opt/vc/lib
+        CFLAGS += -march=armv8-a
+    endif
 endif
 
 # Compiler flags
