@@ -37,7 +37,7 @@ int main() {
         fprintf(stderr, "API_KEY not set in environment\n");
         return 1;
     }
-    char *stop_ids[] = {"0887", "0133", "0857", "10062"};
+    char *stop_ids[] = {"0454", "0133", "0857", "10062"};
     //10062
     int n_stops = 4;
 
