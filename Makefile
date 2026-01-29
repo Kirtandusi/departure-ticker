@@ -6,11 +6,11 @@ UNAME_M := $(shell uname -m)
 CC = gcc
 
 # Base include paths
-INCLUDE_DIRS = -Iinclude -Iinclude/proto
+INCLUDE_DIRS = -Iinclude
 
 # Base library dirs + libs
 LIB_DIRS =
-LIBS = -lprotobuf-c -lcurl -lcjson
+LIBS = -lcurl -lcjson
 
 # Platform-specific settings
 ifeq ($(UNAME_S),Darwin)     # macOS
