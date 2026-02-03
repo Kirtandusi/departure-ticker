@@ -9,9 +9,7 @@
 #include "../include/parser.h"
 #include "../include/render.h"
 
-/* ---------------------------------------------------------------------------
- * Clean shutdown on Ctrl-C  (stops the matrix refresh thread properly)
- * --------------------------------------------------------------------------- */
+//shut down on ctrl+c
 static volatile sig_atomic_t g_running = 1;
 
 static void sig_handler(int sig)
@@ -19,10 +17,6 @@ static void sig_handler(int sig)
     (void)sig;
     g_running = 0;
 }
-
-/* ---------------------------------------------------------------------------
- * .env loader  (unchanged)
- * --------------------------------------------------------------------------- */
 void load_dotenv(const char *path)
 {
     FILE *f = fopen(path, "r");
@@ -43,9 +37,7 @@ void load_dotenv(const char *path)
     fclose(f);
 }
 
-/* ---------------------------------------------------------------------------
- * main
- * --------------------------------------------------------------------------- */
+
 int main(void)
 {
     /* ── signal handlers ──────────────────────────────────────────────── */
@@ -101,7 +93,7 @@ int main(void)
         sleep(15);
     }
 
-    /* ── clean exit ───────────────────────────────────────────────────── */
+    //exit
     matrix_cleanup();
     printf("\nShutdown complete.\n");
     return 0;

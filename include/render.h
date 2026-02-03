@@ -1,23 +1,7 @@
 #ifndef RENDER_H
 #define RENDER_H
 
-#define _POSIX_C_SOURCE 200809L
-#include <stdint.h>
-#include <stddef.h>
-#include <time.h>
-
-/* ---------------------------------------------------------------------------
- * Data types  (keep in sync with whatever your fetch layer produces)
- * --------------------------------------------------------------------------- */
-typedef struct {
-    char   route_name[16];
-    time_t arrival_unix_time;   /* 0  = unknown / no ETA */
-} BusDeparture;
-
-typedef struct {
-    BusDeparture *items;
-    size_t        count;
-} DepartureList;
+#include "parser.h"   /* BusDeparture, DepartureList */
 
 /* ---------------------------------------------------------------------------
  * Public API
