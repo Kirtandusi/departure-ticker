@@ -13,7 +13,7 @@ INCLUDE_DIRS = -Iinclude -I$(RPI_RGB)/include
 
 # Base library dirs + libs
 LIB_DIRS = -L$(RPI_RGB)/lib
-LIBS = -lcurl -lcjson -lrgbmatrix -lrt -lm -lpthread
+LIBS = -lcurl -lcjson -lrgbmatrix -lstdc++ -lrt -lm -lpthread
 
 # Platform-specific settings
 ifeq ($(UNAME_S),Darwin)     # macOS
