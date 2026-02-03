@@ -187,10 +187,9 @@ int matrix_init(void)
     rt_opts.drop_privileges  = 0;
     rt_opts.do_gpio_init     = true;
 
-    char errors[256];
-    g_matrix = led_matrix_create_from_options_and_rt_options(&opts, &rt_opts, errors);
+    g_matrix = led_matrix_create_from_options_and_rt_options(&opts, &rt_opts);
     if (!g_matrix) {
-        fprintf(stderr, "matrix_init: %s\n", errors);
+        fprintf(stderr, "matrix_init: failed to create matrix\n");
         return -1;
     }
 
