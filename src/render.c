@@ -6,6 +6,7 @@
 #include <string.h>
 #include <time.h>
 #include <signal.h>
+#include <stdbool.h>
 
 /*
  * hzeller/rpi-rgb-led-matrix  C API
@@ -150,8 +151,8 @@ static const uint8_t font[][5] = {
 /* ---------------------------------------------------------------------------
  * Module-level state  (the hzeller handles / canvases)
  * --------------------------------------------------------------------------- */
-static struct rgb_led_matrix *g_matrix   = NULL;
-static struct led_canvas     *g_canvas   = NULL;   /* back buffer we draw on */
+static struct RGBLedMatrix *g_matrix   = NULL;
+static struct LedCanvas    *g_canvas   = NULL;   /* offscreen back buffer */
 
 /* ---------------------------------------------------------------------------
  * matrix_init() – library bootstrap
@@ -169,43 +170,35 @@ static struct led_canvas     *g_canvas   = NULL;   /* back buffer we draw on */
  * --------------------------------------------------------------------------- */
 int matrix_init(void)
 {
-    struct rgb_matrix_config cfg;
-    rgb_matrix_config_init(&cfg);          /* zero + sane defaults */
+    struct RGBLedMatrixOptions opts = { 0 };   /* zero-init, all fields have sane defaults when 0 */
+    opts.rows                      = ROWS;
+    opts.cols                      = COLS;
+    opts.chain_length              = 1;
+    opts.parallel                  = 1;
+    opts.scan_mode                 = 0;        /* progressive */
+    opts.pwm_bits                  = 11;
+    opts.pwm_lsb_nanoseconds       = 700;
+    opts.brightness                = 60;
+    opts.disable_hardware_pulsing  = true;     /* audio is off; no HW pulse */
 
-    cfg.rows            = ROWS;
-    cfg.cols            = COLS;
-    cfg.chain_length    = 1;
-    cfg.parallel        = 1;
-    cfg.scan_mode       = 0;               /* progressive           */
-    cfg.pwm_bits        = 11;              /* max colour depth      */
-    cfg.pwm_lsb_nanoseconds = 700;         /* good balance speed/flicker */
-    cfg.slowdown_gpio   = 2;
-
-    /* rgb_matrix_create_from_flags wants (config, argc, argv, errors).
-     * We pass a minimal argv with just the flags we need; the library
-     * parses them the same way it would from the command line.        */
-    const char *argv[] = {
-        "bus-display",              /* argv[0] – ignored by the lib */
-        "--led-no-hardware-pulse",
-        NULL
-    };
-    int argc = 2;   /* don't count the NULL sentinel */
+    struct RGBLedRuntimeOptions rt_opts = { 0 };
+    rt_opts.gpio_slowdown    = 2;              /* sweet-spot; bump to 3 if glitchy */
+    rt_opts.daemon           = 0;              /* foreground */
+    rt_opts.drop_privileges  = 0;
+    rt_opts.do_gpio_init     = true;
 
     char errors[256];
-    g_matrix = rgb_matrix_create_from_flags(&cfg, argc, argv, errors);
+    g_matrix = led_matrix_create_from_options_and_rt_options(&opts, &rt_opts, errors);
     if (!g_matrix) {
-        fprintf(stderr, "matrix_init: rgb_matrix_create failed: %s\n", errors);
+        fprintf(stderr, "matrix_init: %s\n", errors);
         return -1;
     }
 
-    rgb_matrix_set_brightness(g_matrix, 60);
-
-    /* Allocate the first (back) canvas; a second one is created implicitly
-     * on the first SwapCanvas call for double buffering.              */
-    g_canvas = rgb_matrix_create_canvas(g_matrix);
+    /* Offscreen canvas is the back buffer; we draw here then swap to front */
+    g_canvas = led_matrix_create_offscreen_canvas(g_matrix);
     if (!g_canvas) {
-        fprintf(stderr, "matrix_init: canvas allocation failed\n");
-        rgb_matrix_delete(g_matrix);
+        fprintf(stderr, "matrix_init: offscreen canvas allocation failed\n");
+        led_matrix_delete(g_matrix);
         g_matrix = NULL;
         return -1;
     }
@@ -219,7 +212,7 @@ int matrix_init(void)
 void matrix_cleanup(void)
 {
     if (g_matrix) {
-        rgb_matrix_delete(g_matrix);   /* also frees all canvases */
+        led_matrix_delete(g_matrix);   /* also frees all canvases */
         g_matrix = NULL;
         g_canvas = NULL;
     }
@@ -231,7 +224,7 @@ void matrix_cleanup(void)
  * --------------------------------------------------------------------------- */
 
 /* Draw one character; returns x just past the glyph. */
-static int draw_char(struct led_canvas *canvas,
+static int draw_char(struct LedCanvas *canvas,
                      int px, int py, char ch, RGB c)
 {
     if (ch < 0x20 || ch > 0x7E) ch = '?';
@@ -249,7 +242,7 @@ static int draw_char(struct led_canvas *canvas,
 }
 
 /* Draw a string; returns x just past the last glyph. */
-static int draw_str(struct led_canvas *canvas,
+static int draw_str(struct LedCanvas *canvas,
                     int px, int py, const char *s, RGB c)
 {
     while (*s)
@@ -329,7 +322,7 @@ void render_display(DepartureList *list)
     if (list->count == 0) {
         draw_str(g_canvas, 2, LINE_H, "No departures", C_GRAY);
         /* swap: back → front; the old front becomes the new back buffer */
-        g_canvas = led_canvas_swap(g_matrix, g_canvas);
+        g_canvas = led_matrix_swap_on_vsync(g_matrix, g_canvas);
         return;
     }
 
@@ -380,5 +373,5 @@ void render_display(DepartureList *list)
     }
 
     /* ── atomic swap – panel shows new frame instantly ─────────────────── */
-    g_canvas = led_canvas_swap(g_matrix, g_canvas);
+    g_canvas = led_matrix_swap_on_vsync(g_matrix, g_canvas);
 }
