@@ -5,26 +5,26 @@ UNAME_M := $(shell uname -m)
 # Compiler
 CC = gcc
 
+# rpi-rgb-led-matrix location
+RPI_RGB = /home/kirtandusi/rpi-rgb-led-matrix
+
 # Base include paths
-INCLUDE_DIRS = -Iinclude
+INCLUDE_DIRS = -Iinclude -I$(RPI_RGB)/include
 
 # Base library dirs + libs
-LIB_DIRS =
-LIBS = -lcurl -lcjson
+LIB_DIRS = -L$(RPI_RGB)/lib
+LIBS = -lcurl -lcjson -lrgbmatrix -lrt -lm -lpthread
 
 # Platform-specific settings
 ifeq ($(UNAME_S),Darwin)     # macOS
-    INCLUDE_DIRS += -I/opt/homebrew/include
-    LIB_DIRS += -L/opt/homebrew/lib
+INCLUDE_DIRS += -I/opt/homebrew/include
+LIB_DIRS += -L/opt/homebrew/lib
 endif
 
 ifeq ($(UNAME_S),Linux)      # Linux (e.g., Raspberry Pi)
-    ifeq ($(UNAME_M),aarch64)  # Raspberry Pi 5 (64-bit)
-        # Optional: if libraries are installed in custom locations, set here
-        # INCLUDE_DIRS += -I/opt/vc/include
-        # LIB_DIRS += -L/opt/vc/lib
-        CFLAGS += -march=armv8-a
-    endif
+ifeq ($(UNAME_M),aarch64)    # Raspberry Pi 5 (64-bit)
+CFLAGS += -march=armv8-a
+endif
 endif
 
 # Compiler flags
@@ -49,7 +49,7 @@ all: $(TARGET)
 
 # Link objects into executable
 $(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) $(OBJ) -o $(TARGET) $(LDFLAGS)
+	$(CC) $(OBJ) -o $(TARGET) $(LDFLAGS)
 
 # Compile .c to .o
 %.o: %.c
