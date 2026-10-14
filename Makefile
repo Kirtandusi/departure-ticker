@@ -1,62 +1,62 @@
-# Detect platform
-UNAME_S := $(shell uname -s)
-UNAME_M := $(shell uname -m)
+CC ?= cc
+PKG_CONFIG ?= pkg-config
+MATRIX ?= 0
+RPI_RGB ?= /opt/rpi-rgb-led-matrix
+MODE := $(if $(filter 1,$(MATRIX)),matrix,console)
+BUILD_DIR ?= build/$(MODE)
+TARGET := $(BUILD_DIR)/ticker
 
-# Compiler
-CC = gcc
+CFLAGS ?= -O2 -g
+CFLAGS += -std=c11 -Wall -Wextra -Wpedantic
+CPPFLAGS += -Iinclude $(shell $(PKG_CONFIG) --cflags libcurl libcjson)
+LDLIBS += $(shell $(PKG_CONFIG) --libs libcurl libcjson) -lm
+SRC := src/main.c src/config.c src/networking.c src/parser.c src/render.c
+OBJ := $(SRC:src/%.c=$(BUILD_DIR)/%.o)
 
-# rpi-rgb-led-matrix location
-RPI_RGB = /home/kirtandusi/rpi-rgb-led-matrix
-
-# Base include paths
-INCLUDE_DIRS = -Iinclude -I$(RPI_RGB)/include
-
-# Base library dirs + libs
-LIB_DIRS = -L$(RPI_RGB)/lib
-LIBS = -lcurl -lcjson -lrgbmatrix -lstdc++ -lrt -lm -lpthread
-
-# Platform-specific settings
-ifeq ($(UNAME_S),Darwin)     # macOS
-INCLUDE_DIRS += -I/opt/homebrew/include
-LIB_DIRS += -L/opt/homebrew/lib
+ifeq ($(MATRIX),1)
+CPPFLAGS += -DENABLE_MATRIX -I$(RPI_RGB)/include
+LDLIBS += $(RPI_RGB)/lib/librgbmatrix.a -lstdc++ -lrt -lpthread
+MATRIX_TEST := $(BUILD_DIR)/test_matrix
 endif
 
-ifeq ($(UNAME_S),Linux)      # Linux (e.g., Raspberry Pi)
-ifeq ($(UNAME_M),aarch64)    # Raspberry Pi 5 (64-bit)
-CFLAGS += -march=armv8-a
-endif
-endif
-
-# Compiler flags
-CFLAGS = -Wall -Wextra -O2 -g $(INCLUDE_DIRS)
-LDFLAGS = $(LIB_DIRS) $(LIBS)
-
-# Source files
-SRC = \
-    src/main.c \
-    src/networking.c \
-    src/parser.c \
-    src/render.c
-
-# Object files
-OBJ = $(SRC:.c=.o)
-
-# Output binary
-TARGET = ticker
-
-# Default target
+.PHONY: all clean test lint sanitize check
 all: $(TARGET)
 
-# Link objects into executable
 $(TARGET): $(OBJ)
-	$(CC) $(OBJ) -o $(TARGET) $(LDFLAGS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-# Compile .c to .o
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+$(BUILD_DIR)/%.o: src/%.c
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -MMD -MP -c $< -o $@
 
-# Clean build files
+$(BUILD_DIR)/test_core: tests/test_core.c src/config.c src/parser.c src/networking.c src/render.c $(wildcard include/*.h)
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(filter %.c,$^) $(LDLIBS) -o $@
+
+$(BUILD_DIR)/test_network: tests/test_network.c src/networking.c include/networking.h include/parser.h
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -DREQUEST_TIMEOUT_SECONDS=1L $(LDFLAGS) $(filter %.c,$^) $(LDLIBS) -o $@
+
+$(BUILD_DIR)/test_matrix: tests/test_matrix.c src/render.c include/render.h include/parser.h
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(filter %.c,$^) $(LDLIBS) -o $@
+
+test: $(TARGET) $(BUILD_DIR)/test_core $(BUILD_DIR)/test_network $(MATRIX_TEST)
+	$(BUILD_DIR)/test_core
+	python3 tests/test_integration.py $(BUILD_DIR)/ticker $(BUILD_DIR)/test_network
+ifeq ($(MATRIX),1)
+	$(MATRIX_TEST)
+endif
+
+lint:
+	$(CC) $(CPPFLAGS) $(CFLAGS) -Werror -fsyntax-only $(SRC) tests/test_core.c tests/test_network.c
+
+check: lint test
+
+sanitize:
+	$(MAKE) MATRIX=0 BUILD_DIR=build/sanitize CFLAGS='-std=c11 -Wall -Wextra -Wpedantic -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer' LDFLAGS='-fsanitize=address,undefined' check
+
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -rf build
 
-.PHONY: all clean
+-include $(OBJ:.o=.d)

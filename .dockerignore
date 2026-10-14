@@ -1,3 +1,11 @@
-*.o
+**/.env
+**/*.env
+**/.env.*
+.git
+.agent
+.vscode
+build
+**/*.o
+**/*.d
 ticker
-departure-ticker
+tripupdates.*
